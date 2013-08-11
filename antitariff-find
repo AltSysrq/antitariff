@@ -1,0 +1,79 @@
+#! /bin/sh
+# Copyright (c) Jason Lingle 2013
+
+# Usage: antitariff-find [-H] containing-filename unqualified-class
+# For each given unqualified class name, search for a Java import statement
+# that imports it. If -H is given, rebuild the index if the import cannot be
+# found on the first try, then try again.
+#
+# On success, the import statement is emitted to stdout and the exit status is
+# zero. On failure, nothing is output and the exit status is non-zero.
+#
+# It must be run from within a git repository. The languages Java, Groovy, and
+# Scala are supported.
+
+DIRS="$HOME/.m2 $HOME/.gradle $HOME/.lein $HOME/.grails"
+DIRS="$DIRS /usr/share/java /usr/local/share/java"
+
+not_at_root_of_git_repository() {
+    test ! -d .git
+}
+
+find_repository_root() {
+    while not_at_root_of_git_repository && test "`pwd`" != /; do
+        cd ..
+    done
+
+    if test "`pwd`" = /; then
+        echo >&2 "Fatal: Root directory reached without finding repository root"
+        exit 1
+    fi
+}
+
+search_within_repository() {
+    find . \( -name \*.java -o -name \*.groovy -o -name \*.scala \) -print0 | \
+        xargs -0 cat | grep -Em1 "^import .*\\.$1;?\$"
+}
+
+search_within_index() {
+    grep -Em1 "^import .*\\.$1;?\$" $HOME/.antitariff 2>/dev/null
+}
+
+generate_index() {
+    find 2>/dev/null $DIRS -name \*.jar -exec \
+        unzip -l '{}' \; | \
+        grep -Eo '[a-zA-Z0-9_$/]+\.class$' | sort -u | \
+        sed '
+s/^/import /;
+/\$/s/import/import static/;
+s/\.class//;
+s:[/$]:.:g' >$HOME/.antitariff
+}
+
+try_harder=no
+this_script="$0"
+if test $# != 1; then
+    if test "$1" = "-H"; then
+        try_harder=yes
+        shift
+    fi
+fi
+
+if test $# != 1; then
+    exec 1>&2
+    echo "Usage: $this_script [-H] classname"
+    exit 1
+fi
+
+if test "$try_harder" = "yes"; then
+    retry() {
+        generate_index
+        search_within_index $*
+    }
+else
+    retry() {
+        return 1
+    }
+fi
+
+search_within_repository $1 || search_within_index $1 || retry $1
