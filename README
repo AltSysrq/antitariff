@@ -1,0 +1,37 @@
+Antitariff is a script for automatically producing the necessary
+Java/Scala/Groovy import statements for classes. Besides looking through your
+current git repository for existing imports, it also knows how to search Maven,
+Gradle, Grails, and Leiningen caches as well as common locations for Java jars
+in a number of Linux distributions for classes.
+
+The main script is antitariff-find. Put it somewhere in your path, eg
+  sudo cp antitariff-find /usr/local/bin/
+
+The basic usage is to call the script with the filename your are working on and
+the class you are looking for.
+  antitariff-find MyClass.java DefaultHttpClient
+
+If successful, it emits an import statement appropriate for the language you
+are working in. It will first search the existing import statements of the git
+repository you are in (and you currently *must* be in a git repository). If
+that fails, it will look in the index (stored at ~/.antitariff) for matching
+classes.
+
+You can have the script regenerate the index by passing -H at the beginning of
+your query. This may take a while, but all future searches will benefit from
+the results. You'll need to re-run it with -H whenever new jars which you care
+about are downloaded into the supported caches.
+
+A basic integration with Emacs is also included. To use it, copy antitariff.el
+somewhere in your load path, then
+  (require 'antitariff)
+in your .emacs .
+
+The main function is antitariff-import-class-at-point, which does all the work
+of adding the import statement for you; you don't even have to leave where you
+were. You should be able to just bind it to a key like below and use it
+immediately.
+  (global-set-key (kbd "<f9>") 'antitariff-import-class-at-point)
+
+There will eventually be a minor mode which performs automatic imports more
+aggressively, once the importer is smarter.
