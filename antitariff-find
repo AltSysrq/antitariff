@@ -52,18 +52,21 @@ s:[/$]:.:g' >$HOME/.antitariff
 
 try_harder=no
 this_script="$0"
-if test $# != 1; then
+if test $# != 2; then
     if test "$1" = "-H"; then
         try_harder=yes
         shift
     fi
 fi
 
-if test $# != 1; then
+if test $# != 2; then
     exec 1>&2
-    echo "Usage: $this_script [-H] classname"
+    echo "Usage: $this_script [-H] filename classname"
     exit 1
 fi
+
+filename="$1"
+class="$2"
 
 if test "$try_harder" = "yes"; then
     retry() {
@@ -76,4 +79,16 @@ else
     }
 fi
 
-search_within_repository $1 || search_within_index $1 || retry $1
+output="`search_within_repository $class || search_within_index $class || retry $class`"
+status="$?"
+
+if test 0 = "$status"; then
+    if echo "$filename" | grep -E '.java$' >/dev/null; then
+        echo "$output" | sed 's/$/;/;s/;;/;/'
+    else
+        echo "$output" | sed 's/;//'
+    fi
+fi
+
+exit $status
+
