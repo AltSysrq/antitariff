@@ -82,6 +82,9 @@ else
     }
 fi
 
+# Suppress spurious output due to Emacs unsafed-files sockets
+exec 2>/dev/null
+
 output="`search_within_repository $class || search_within_index $class || retry $class`"
 status="$?"
 
