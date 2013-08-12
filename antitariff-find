@@ -68,6 +68,9 @@ fi
 filename="$1"
 class="$2"
 
+cd "`dirname "$filename"`"
+find_repository_root
+
 if test "$try_harder" = "yes"; then
     retry() {
         generate_index
