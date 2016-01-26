@@ -33,5 +33,16 @@ were. You should be able to just bind it to a key like below and use it
 immediately.
   (global-set-key (kbd "<f9>") 'antitariff-import-class-at-point)
 
-There will eventually be a minor mode which performs automatic imports more
-aggressively, once the importer is smarter.
+In some cases, there are packages which you never, ever want imported, but
+which end up sullying your Maven/Gradle cache by transitive dependencies
+anyway. You can exclude these by puting exclusion regexes one per line in
+~/.antitariff-blacklist. A reasonable example follows. (Note leading space is
+relevant, since these match import statements rather than class names. Here it
+is backslash-escaped for clarity.)
+
+  \ groovy\.
+  \ groovyx\.
+  \ grails\.
+  codehaus
+  repackaged
+

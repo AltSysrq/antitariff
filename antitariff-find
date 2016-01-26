@@ -1,5 +1,5 @@
 #! /bin/sh
-# Copyright (c) Jason Lingle 2013
+# Copyright (c) Jason Lingle 2013, 2016
 
 # Usage: antitariff-find [-H] containing-filename unqualified-class
 # For each given unqualified class name, search for a Java import statement
@@ -11,6 +11,10 @@
 #
 # It must be run from within a git repository. The languages Java, Groovy, and
 # Scala are supported.
+#
+# If the file ~/.antitariff-blacklist exists, each line within is interpreted
+# as an extended regex (as per grep) any (synthetic) import statements which
+# match any of them are excluded from the index.
 
 DIRS="$HOME/.m2 $HOME/.gradle $HOME/.lein $HOME/.grails"
 DIRS="$DIRS /usr/share/java /usr/local/share/java"
@@ -39,7 +43,18 @@ search_within_index() {
     grep -Em1 "^import .*\\.$1;?\$" $HOME/.antitariff 2>/dev/null
 }
 
+blacklist_filter() {
+    grep -vE "`cat $HOME/.antitariff-blacklist`"
+}
+
 generate_index() {
+    local filter
+    if test -f $HOME/.antitariff-blacklist; then
+        filter=blacklist_filter
+    else
+        filter=cat
+    fi
+
     find 2>/dev/null $DIRS -name \*.jar -exec \
         unzip -l '{}' \; | \
         grep -Eo '[a-zA-Z0-9_$/]+\.class$' | sort -u | \
@@ -47,7 +62,7 @@ generate_index() {
 s/^/import /;
 /\$/s/import/import static/;
 s/\.class//;
-s:[/$]:.:g' >$HOME/.antitariff
+s:[/$]:.:g' | $filter >$HOME/.antitariff
 }
 
 try_harder=no
